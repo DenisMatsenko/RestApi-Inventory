@@ -6,13 +6,19 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const (
-	host = "localhost"
-	port = 5432
-	user = "postgres"
-	password = "Dm2016dM"
-	dbname = "first_db"
-)
+// const (
+// 	host = "localhost"
+// 	port = 5432
+// 	user = "postgres"
+// 	password = "Dm2016dM"
+// 	dbname = "first_db"
+// )
+
+type Student struct {
+	Name string
+	LastName string
+	Empid int
+}
 
 func CheckError(err error) {
 	if err != nil {
@@ -21,6 +27,7 @@ func CheckError(err error) {
 }
 
 func main() {
+	// ? Open the connection
 	db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=Dm2016dM dbname=first_db sslmode=disable")
 	CheckError(err)
 	defer db.Close()
@@ -28,25 +35,24 @@ func main() {
 	// script := `INSERT INTO "Employee" ("Name", "LastName", "Empid") VALUES ('Denis', 'Matsenko', 1)`
 	// script := `DELETE FROM "Employee" WHERE "Empid" = 1`
 	// script := `UPDATE "Employee" SET "Name" = 'Michal', "LastName" = 'Vanis' WHERE "Empid" = 1`
-	script := `SELECT "Name" AS name, "LastName" AS lastName, "Empid" AS id FROM "Employee"`
+	script := `SELECT "Empid", "Name", "LastName" FROM "Employee"`
+	
+	// ? Execute the script
 	rows, err := db.Query(script)
 	CheckError(err)
 
+	// ? Iterate over the rows
 	for rows.Next() {
-		var Name string
-		var LastName string
-		var Empid int
+		var student Student
 
-		// Scan the row values into variables
-		err = rows.Scan(&LastName, &Name, &Empid)
+		// ?  Scan the row values into variables
+		err = rows.Scan(&student.Empid, &student.LastName, &student.Name)
 		CheckError(err)
 
-		// Print the row values
-		fmt.Println(Name, LastName, Empid)
+		// ? Print the row values
+		fmt.Println(student.Empid, student.Name)
 	}
-
-	fmt.Println(err)
-	CheckError(err)
-
-	fmt.Println("Successfull")
+	rows.Close()
+	
+	fmt.Println("Done")
 }
