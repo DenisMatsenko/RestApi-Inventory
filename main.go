@@ -1,9 +1,13 @@
 package main
 
 import (
+	// "bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
+	// "io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,6 +17,7 @@ import (
 
 type item struct {
 	Name 			string 		`json:"name"`
+	Manufacturer	string 		`json:"manufacturer"`
 	Description 	string 		`json:"description"`
 	Quality 		int 		`json:"quality"`
 	Quantity 		int 		`json:"quantity"`
@@ -62,26 +67,63 @@ func CheckError(err error) {
 // 	fmt.Println("Done")
 // }
 
+// # Add item
 func addItem(w http.ResponseWriter, r *http.Request) {
-	// ? Decode the request body into a new `Item` instance
-	var item item
-	json.NewDecoder(r.Body).Decode(&item)
+	// ? Decode the request body for isArray check
+	respBody, _ := ioutil.ReadAll(r.Body)
+	var body []map[string]any
 
-	// ? Open the connection to database
-	db, err := sql.Open("postgres", dbconnection)
-	CheckError(err)
-	defer db.Close()
+	json.Unmarshal(respBody, &body)
+	fmt.Printf("%v", body)
 
-	// ? Create and execute the SQL script
-	script := fmt.Sprintf(`INSERT INTO "Inventory" ("Name", "Description", "Quality", "Quantity", "ItemType", "Price", "Color", "Img") VALUES ('%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s')`, item.Name, item.Description, item.Quality, item.Quantity, item.ItemType, item.Price, item.Color, item.Img)
-	_, sqlerr := db.Exec(script)
-	CheckError(sqlerr)
+
+
+	// x := bytes.TrimLeft(r.Body, " \t\r\n")
+
+	// isArray := len(x) > 0 && x[0] == '['
+	// isObject := len(x) > 0 && x[0] == '{'
+
+
+	// // ? Open the connection to database
+	// db, err := sql.Open("postgres", dbconnection)
+	// CheckError(err)
+	// defer db.Close()
+
+	// var script string
+
+	// fmt.Println("everything is ok")
+	
+	// if len(body) == 0 {
+	// 	// * if it is only one object  
+
+	// 	// ? Decode the request body into a new `Item` instance
+	// 	var item item
+	// 	err := json.NewDecoder(r.Body).Decode(&item)
+	// 	CheckError(err)
+	// 	// ? Create and execute the SQL script
+	// 	script = fmt.Sprintf(`INSERT INTO "Inventory" ("Name", "Manufacturer", "Description", "Quality", "Quantity", "ItemType", "Price", "Color", "Img") VALUES ('%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s')`, item.Name, item.Manufacturer, item.Description, item.Quality, item.Quantity, item.ItemType, item.Price, item.Color, item.Img)
+	// 	_, sqlerr := db.Exec(script)
+	// 	CheckError(sqlerr)
+
+	// } else  {
+	// 	// * if it is an array of objects
+	// 	CheckError(err)
+
+	// 	for _, item := range itemArr {
+	// 		// ? Create and execute the SQL script
+	// 		script = fmt.Sprintf(`INSERT INTO "Inventory" ("Name", "Manufacturer", "Description", "Quality", "Quantity", "ItemType", "Price", "Color", "Img") VALUES ('%s', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%s')`, item.Name, item.Manufacturer, item.Description, item.Quality, item.Quantity, item.ItemType, item.Price, item.Color, item.Img)
+	// 		_, sqlerr := db.Exec(script)
+	// 		CheckError(sqlerr)
+	// 	}
+	// }
+
 
 	// ? Return
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 }
 
+// # Delete item by id
 func deleteItem(w http.ResponseWriter, r *http.Request) {
 	var id string = mux.Vars(r)["id"]
 
@@ -103,7 +145,12 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// # Delete all items
 func deleteAllItems(w http.ResponseWriter, r *http.Request) {
+	if mux.Vars(r)["id"] == "" {
+		println("No id provided")
+	}
+
 	// ? Open the connection to database
 	db, err := sql.Open("postgres", dbconnection)
 	CheckError(err)
@@ -120,6 +167,15 @@ func deleteAllItems(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func test(w http.ResponseWriter, r *http.Request) {
+	// ? Decode the request body into a new `Item` instance
+	var items []item
+	json.NewDecoder(r.Body).Decode(&items)
+
+	println(items[0].Name)
+	println(items[1].Name)
+}
+
 // func addItemToDB(item Item) {
 // 	fmt.Println("Adding item to DB")
 // 	db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=Dm2016dM dbname=EShopInventory sslmode=disable")
@@ -133,6 +189,7 @@ func deleteAllItems(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := mux.NewRouter()
+	mux.HandleFunc("/test", test).Methods("POST")
 	mux.HandleFunc("/additem", addItem).Methods("POST")
 	mux.HandleFunc("/deleteall", deleteAllItems).Methods("DELETE")
 	mux.HandleFunc("/delete/id={id}", deleteItem).Methods("DELETE")
